@@ -1,0 +1,107 @@
+CODE GUIDE - where to find everything in the C++ code
+============================================================
+
+HOW TO USE: every important part of the code has a tag like 'FEATURE 4'.
+Press Ctrl+F in any .cpp / .h file and search the tag to jump straight to it.
+Every file starts with a banner that says what the file is for.
+Complex logic is explained in numbered steps (Step 1, Step 2 ...) in the comments.
+
+FEATURE MAP
+------------------------------------------------------------
+FEATURE 1: Login and Logout
+   Where : main.cpp: routes /api/login, /api/logout, /api/me.  HospitalSystem.h: login().  User.h: checkPassword()
+   How   : User types username + password. login() finds the matching user. The server makes a random token and the browser sends it with every request.
+
+FEATURE 2: Role-based menus
+   Where : User.h: pages() in Admin, Receptionist, Doctor.  main.cpp: sessionToJson()
+   How   : Each role has its own pages() list (polymorphism). The browser draws the left menu from it (web/js/core.js, showApp).
+
+FEATURE 3: Patient registration and management
+   Where : main.cpp: /api/patients routes, readPatientForm().  HospitalSystem.h: addPatient(), searchPatients(), deletePatient().  Patient.h
+   How   : Form is validated, patient gets the next ID (P001...). Delete also removes the patient's appointments, visits and bills.
+
+FEATURE 4: Appointment registration (booking) and cancellation
+   Where : main.cpp: /api/appointments routes (6 validation steps).  HospitalSystem.h: slotTaken(), addAppointment().  Appointment.h
+   How   : Checks patient, doctor, date, time, reason, then blocks double booking with slotTaken(). Status: Scheduled / Completed / Cancelled.
+
+FEATURE 5: Medical visits and patient history
+   Where : main.cpp: /api/visits, /api/patients/<id>/history.  HospitalSystem.h: addVisit(), visitsOf().  MedicalVisit.h
+   How   : Doctor saves diagnosis and notes. addVisit() also creates the bill and completes the linked appointment.
+
+FEATURE 6: Tests and procedures (price list)
+   Where : Test.h (Service, Test), Procedure.h.  HospitalSystem.h: addServiceToVisit().  main.cpp: /api/services, /api/visits/<id>/services
+   How   : Prices are fixed in the system; the doctor only picks the item, so billing mistakes cannot happen.
+
+FEATURE 7: Billing
+   Where : Bill.h: total().  HospitalSystem.h: addVisit(), addServiceToVisit().  main.cpp: /api/bills routes
+   How   : Total = consultation fee + tests + procedures + other charges. A paid bill is locked.
+
+FEATURE 8: Reports
+   Where : main.cpp: /api/reports
+   How   : Counts patients, doctors, appointments and money. Read-only, Admin only.
+
+FEATURE 9: Staff management
+   Where : main.cpp: /api/staff routes.  HospitalSystem.h: addUser(), deleteUser(), usernameTaken().  User.h
+   How   : Admin adds doctors/receptionists, resets passwords. Staff who have records cannot be deleted.
+
+FEATURE 10: Saving and loading data
+   Where : HospitalSystem.h: load(), save().  Every model: toRecord() / fromRecord().  Util.h: split(), clean()
+   How   : One line per record in the data folder, fields separated by |. save() runs after every change.
+
+FEATURE 11: Security: role check on every request
+   Where : main.cpp: route(), currentUser()
+   How   : Before any route runs: find the user from the token (401 if none), check the role (403 if not allowed).
+
+OOP CONCEPTS (where each one is used)
+------------------------------------------------------------
+Inheritance: Admin, Receptionist, Doctor inherit from User.  Test and Procedure inherit from Service.
+   Files : models/User.h, models/Test.h, models/Procedure.h
+
+Abstraction: User and Service are abstract: they have pure virtual functions (= 0), so only the child classes can be created.
+   Files : models/User.h, models/Test.h
+
+Polymorphism: user->pages() and service->type() run the child's own version through a base-class pointer.
+   Files : models/User.h, main.cpp (sessionToJson)
+
+Encapsulation: Data members are private/protected and are reached only through getters and setters.
+   Files : all classes in models/
+
+Composition: A Bill contains BillItems; HospitalSystem contains the lists of all objects.
+   Files : models/Bill.h, services/HospitalSystem.h
+
+Constructor / destructor: HospitalSystem() loads the files; ~HospitalSystem() saves them. Base classes have virtual destructors.
+   Files : services/HospitalSystem.h, models/User.h
+
+LIKELY EXAMINER QUESTIONS
+------------------------------------------------------------
+1. How does login work?
+   -> FEATURE 1. login() compares username and password; on success the server stores a random token and the browser sends it on every request.
+
+2. How does each role get a different menu?
+   -> FEATURE 2. Each role class overrides pages() (polymorphism); the browser builds the menu from that list.
+
+3. How do you stop a doctor opening the bills?
+   -> FEATURE 11. route() checks the role on the server for every request and answers 403 if it is not allowed.
+
+4. How is an appointment registered, and how is double booking prevented?
+   -> FEATURE 4. Six validation steps, then slotTaken() refuses a second scheduled appointment for the same doctor, date and time.
+
+5. How is the bill calculated?
+   -> FEATURE 7. Bill::total() = consultation fee + test charges + procedure charges + other charges. Prices come from the fixed price list.
+
+6. Where is the data stored and when is it saved?
+   -> FEATURE 10. Text files in the data folder; save() is called after every change; load() runs at start-up.
+
+7. What happens when a patient is deleted?
+   -> FEATURE 3. deletePatient() also removes the patient's appointments, visits and bills so no orphan records remain.
+
+8. Which OOP concepts did you use and where?
+   -> See the OOP table: inheritance (User, Service), abstraction, polymorphism (pages, type), encapsulation, composition.
+
+FILE ROLES
+------------------------------------------------------------
+main.cpp                    the server: receives requests, checks the user, sends answers
+services/HospitalSystem.h   all data + business rules + loading/saving files
+models/*.h                  the classes: User(+Admin/Receptionist/Doctor), Patient, Appointment,
+                            MedicalVisit, Service(+Test/Procedure), Bill, and Util (helper functions)
+web/                        the screens shown in the browser (HTML, CSS, JavaScript)

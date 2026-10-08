@@ -1,0 +1,4 @@
+Admin|A001|admin01|admin123|Admin||
+Receptionist|R001|recep01|recep123|Sita Reception||
+Doctor|D001|dr.sharma|doc123|Dr. Sharma|General Physician|500
+Doctor|D002|dr.rai|doc123|Dr. Rai|Pediatrician|600

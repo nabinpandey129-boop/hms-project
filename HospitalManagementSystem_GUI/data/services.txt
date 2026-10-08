@@ -1,0 +1,6 @@
+Test|T001|Blood Test|300
+Test|T002|X-Ray|800
+Test|T003|Urine Test|200
+Procedure|PR001|Injection|150
+Procedure|PR002|Dressing|250
+Procedure|PR003|Minor Procedure|1000
